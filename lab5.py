@@ -1,67 +1,58 @@
-import time
 import itertools
-import random
+import timeit
 
-K = 5
-N = 3
-MAX_DURATION = 300
+# Параметры задачи
+K = 5  # Количество фильмов
+N = 3  # Количество фильмов в программе
 
-movies_data = [
-    {
-        "name": f"Фильм {i+1}",
-        "duration": random.randint(60, 150),
-        "rating": round(random.uniform(5.0, 9.5), 1)
-    }
-    for i in range(K)
-]
+# Генерация данных о фильмах
+movies = [f"{i + 1}" for i in range(K)]
 
-def generate_programs_algo(movies, N, current=[], all_programs=[]):
+
+# 1. Алгоритмический способ (рекурсивный)
+def generate_programs_recursive(movies, N, current=[], result=[]):
     if len(current) == N:
-        all_programs.append(current.copy())
+        result.append(current.copy())
         return
-    for i in range(len(movies)):
-        if movies[i] not in current:
-            current.append(movies[i])
-            generate_programs_algo(movies, N, current, all_programs)
+    for movie in movies:
+        if movie not in current:
+            current.append(movie)
+            generate_programs_recursive(movies, N, current, result)
             current.pop()
-    return all_programs
+    return result
 
-movie_names = [movie["name"] for movie in movies_data]
 
-start_algo = time.time()
-programs_algo = generate_programs_algo(movie_names, N, [], [])
-end_algo = time.time()
-print(f"[1] Алгоритмический способ:")
-print(f"    Кол-во программ: {len(programs_algo)}")
-print(f"    Время выполнения: {end_algo - start_algo:.6f} сек")
+# 2. Использование itertools
+def generate_with_itertools(movies, N):
+    return list(itertools.permutations(movies, N))
 
-start_lib = time.time()
-programs_lib = list(itertools.permutations(movie_names, N))
-end_lib = time.time()
-print(f"[2] Через itertools.permutations:")
-print(f"    Кол-во программ: {len(programs_lib)}")
-print(f"    Время выполнения: {end_lib - start_lib:.6f} сек")
 
-def find_optimal_program(movies_data, N, max_duration):
-    best_program = None
-    best_rating = 0
-    for combo in itertools.permutations(movies_data, N):
-        total_duration = sum(f["duration"] for f in combo)
-        if total_duration <= max_duration:
-            total_rating = sum(f["rating"] for f in combo)
-            if total_rating > best_rating:
-                best_rating = total_rating
-                best_program = combo
-    return best_program, best_rating
+# Сравнение и вывод всех вариантов
+def compare_and_show_all():
+    print(f"Все возможные программы просмотра из {N} фильмов из {K} доступных:\n")
 
-optimal_program, rating = find_optimal_program(movies_data, N, MAX_DURATION)
+    # Генерация вариантов
+    programs_recursive = generate_programs_recursive(movies, N, [], [])
+    programs_itertools = generate_with_itertools(movies, N)
 
-print("\n[3] Оптимальная программа с ограничением по времени:")
-if optimal_program:
-    total_duration = sum(f["duration"] for f in optimal_program)
-    for film in optimal_program:
-        print(f"  {film['name']} — {film['duration']} мин — рейтинг {film['rating']}")
-    print(f"  Суммарный рейтинг: {rating}")
-    print(f"  Суммарная длительность: {total_duration} мин")
-else:
-    print("  Нет подходящей программы в рамках ограничения.")
+    # Проверка корректности
+    assert len(programs_recursive) == len(programs_itertools)
+    assert set(tuple(p) for p in programs_recursive) == set(programs_itertools)
+
+    # Вывод всех вариантов с нумерацией
+    print("Список всех возможных программ:")
+    for i, program in enumerate(programs_recursive, 1):
+        print(f"{i:2d}. {','.join(program)}")
+
+    # Сравнение времени выполнения
+    print("\nСравнение методов генерации:")
+    recursive_time = timeit.timeit(lambda: generate_programs_recursive(movies, N, [], []), number=100)
+    itertools_time = timeit.timeit(lambda: generate_with_itertools(movies, N), number=100)
+
+    print(f"Алгоритмический способ: {recursive_time:.6f} сек (100 запусков)")
+    print(f"Способ с itertools: {itertools_time:.6f} сек (100 запусков)")
+    print(f"Разница: {abs(recursive_time - itertools_time):.6f} сек")
+
+
+if __name__ == "__main__":
+    compare_and_show_all()
