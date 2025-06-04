@@ -49,8 +49,8 @@ def compare_and_show_all():
     recursive_time = timeit.timeit(lambda: generate_programs_recursive(movies, N, [], []), number=100)
     itertools_time = timeit.timeit(lambda: generate_with_itertools(movies, N), number=100)
 
-    print(f"Алгоритмический способ: {recursive_time:.6f} сек (100 запусков)")
-    print(f"Способ с itertools: {itertools_time:.6f} сек (100 запусков)")
+    print(f"Алгоритмический способ: {recursive_time:.6f} сек")
+    print(f"Способ с itertools: {itertools_time:.6f} сек")
     print(f"Разница: {abs(recursive_time - itertools_time):.6f} сек")
 
 
