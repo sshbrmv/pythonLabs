@@ -17,18 +17,22 @@ def G_rec(n):
         return 1
     return F_rec(n - 1) + G_rec(n - 1)
 
+
 def iterative_calc(n):
     if n < 1:
         raise ValueError("n должно быть положительным целым числом")
     if n == 1:
         return 2, 1
     F_prev, G_prev = 2, 1
+    sign = 1
+    fact = 1
     for i in range(2, n + 1):
-        fact = math.factorial(i-1)
-        F_current = -1 * ((math.factorial(i - 1) - G_prev))
-        G_current = F_prev + G_prev
+        sign *= -1
+        fact *= (2 * i - 2) * (2 * i - 1)
+        F_current = sign * fact - G_prev
+        G_current = F_prev
         F_prev, G_prev = F_current, G_current
-        fact *= (2 * i) * math.factorial(i+1)
+        fact *= (2 * i) * (2 * i + 1)
     return F_prev, G_prev
 def time_func(func, repeats=1):
     return timeit.timeit(func, number=repeats)
