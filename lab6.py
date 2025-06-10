@@ -17,7 +17,6 @@ def G_rec(n):
         return 1
     return F_rec(n - 1) + G_rec(n - 1)
 
-
 def iterative_calc(n):
     if n < 1:
         raise ValueError("n должно быть положительным целым числом")
@@ -32,8 +31,8 @@ def iterative_calc(n):
         F_current = sign * fact - G_prev
         G_current = F_prev
         F_prev, G_prev = F_current, G_current
-        fact *= (2 * i) * (2 * i + 1)
     return F_prev, G_prev
+    
 def time_func(func, repeats=1):
     return timeit.timeit(func, number=repeats)
 def main():
