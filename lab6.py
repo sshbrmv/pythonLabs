@@ -23,12 +23,12 @@ def iterative_calc(n):
     if n == 1:
         return 2, 1
     F_prev, G_prev = 2, 1
-    sign = 1
-    fact = 1
+    sign = -1  
+    fact = 1    
     for i in range(2, n + 1):
         sign *= -1
-        fact *= (2 * i - 2) * (2 * i - 1)
-        F_current = sign * fact - G_prev
+        fact *= (i - 1) 
+        F_current = sign * (fact - G_prev)
         G_current = F_prev
         F_prev, G_prev = F_current, G_current
     return F_prev, G_prev
