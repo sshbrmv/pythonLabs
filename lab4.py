@@ -13,6 +13,7 @@ def load_matrix_from_file(filename):
             matrix.append(row)
         return np.array(matrix)
 
+
 def create_matrix_f(A):
     F = A.copy()
     n = F.shape[0]
