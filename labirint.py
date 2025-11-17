@@ -10,19 +10,26 @@ PLAYER_COLOR = "#3498db"
 EXIT_COLOR = "#ff0000"
 VISITED_COLOR = "#000000"
 PATH_COLOR = "#808080"
-BUTTON_COLOR = "#ff0000"
+BUTTON_COLOR = "#ff0000"  
 
 walls = []
 player = (1, 1)
-exit_cell = (COLS - 2, ROWS - 2)
+exit_cells = []  
 player_item = None
-exit_item = None
+exit_items = []
 game_over = False
 running_search = False
 canvas = None
 current_direction = "E"
 visited_cells = set()
 path_history = []
+
+POSSIBLE_EXIT_POSITIONS = [
+    (1, 1),  
+    (COLS - 2, 1),  
+    (1, ROWS - 2), 
+    (COLS - 2, ROWS - 2)  
+]
 
 DIRECTIONS = {
     "N": (0, -1, 0),
@@ -33,10 +40,8 @@ DIRECTIONS = {
 
 def generate_maze():
     global walls
-
     walls = [[[True, True, True, True] for _ in range(COLS)] for _ in range(ROWS)]
     visited = [[False for _ in range(COLS)] for _ in range(ROWS)]
-
     def neighbors(cx, cy):
         dirs = [("N", (0, -2), 0, 2), ("S", (0, 2), 2, 0), ("W", (-2, 0), 3, 1), ("E", (2, 0), 1, 3)]
         random.shuffle(dirs)
@@ -44,7 +49,6 @@ def generate_maze():
             nx, ny = cx + dx, cy + dy
             if 1 <= nx < COLS - 1 and 1 <= ny < ROWS - 1 and not visited[ny][nx]:
                 yield nx, ny, dx, dy
-
     stack = [(1, 1)]
     visited[1][1] = True
     while stack:
@@ -71,7 +75,6 @@ def generate_maze():
             break
         if not advanced:
             stack.pop()
-
     for x in range(COLS):
         walls[0][x][0] = True
         walls[ROWS - 1][x][2] = True
@@ -79,16 +82,26 @@ def generate_maze():
         walls[y][0][3] = True
         walls[y][COLS - 1][1] = True
 
-    sx, sy = player
-    ex, ey = exit_cell
-    for d in range(4):
-        walls[sy][sx][d] = False
-        walls[ey][ex][d] = False
+def generate_exits():
+    global exit_cells
+    exit_cells = random.sample(POSSIBLE_EXIT_POSITIONS, 2)
+    for exit_cell in exit_cells:
+        ex, ey = exit_cell
+        for d in range(4):
+            walls[ey][ex][d] = False
+
+def get_random_start_position():
+    max_attempts = 100 
+    for _ in range(max_attempts):
+        x = random.randint(1, COLS - 2)  # Случайный X (не на границах)
+        y = random.randint(1, ROWS - 2)  # Случайный Y (не на границах)
+        if not is_wall_cell(x, y) and (x, y) not in exit_cells:
+            return (x, y)
+    return (1, 1)
 
 def draw_maze():
     canvas.delete("all")
     canvas.create_rectangle(0, 0, COLS * CELL_SIZE, ROWS * CELL_SIZE, fill=MAZE_BG, outline="")
-
     for y in range(ROWS):
         for x in range(COLS):
             cx, cy = x * CELL_SIZE, y * CELL_SIZE
@@ -113,35 +126,39 @@ def draw_player():
     player_item = canvas.create_rectangle(cx - s / 2, cy - s / 2, cx + s / 2, cy + s / 2,
                                           fill=PLAYER_COLOR, outline="#2980b9", width=1)
 
-def draw_exit():
-    global exit_item
-    if exit_item:
+def draw_exits():
+    global exit_items
+    for exit_item in exit_items:
         canvas.delete(exit_item)
-    x, y = exit_cell
-    cx = x * CELL_SIZE
-    cy = y * CELL_SIZE
-    exit_item = canvas.create_rectangle(cx, cy, cx + CELL_SIZE, cy + CELL_SIZE,
-                                        fill=EXIT_COLOR, outline="", tags="exit")
+    exit_items = []
+
+    for exit_cell in exit_cells:
+        x, y = exit_cell
+        cx = x * CELL_SIZE
+        cy = y * CELL_SIZE
+        exit_item = canvas.create_rectangle(cx, cy, cx + CELL_SIZE, cy + CELL_SIZE,
+                                            fill=EXIT_COLOR, outline="")
+        exit_items.append(exit_item)
 
 def reset_game():
     global player, game_over, running_search, current_direction, visited_cells, path_history
     if running_search:
         return
-
-    player = (1, 1)
-    current_direction = "E"
+    generate_maze()
+    generate_exits()
+    player = get_random_start_position()
+    current_direction = random.choice(["N", "E", "S", "W"])  # Случайное начальное направление
     game_over = False
     running_search = False
     visited_cells = set()
     path_history = []
-
     draw_maze()
-    draw_exit()
+    draw_exits()
     draw_player()
     canvas.delete("search_vis")
     canvas.delete("path")
 
-def get_right(current_dir):
+def get_right_hand_directions(current_dir):
     if current_dir == "N":
         return ["E", "N", "W", "S"]
     elif current_dir == "E":
@@ -181,16 +198,14 @@ def run_right_hand_step():
     if game_over or not running_search:
         return
     x, y = player
-
-    if (x, y) == exit_cell:
+    if (x, y) in exit_cells:
         draw_correct_path()
         game_over = True
         running_search = False
-        messagebox.showinfo("Финиш", "Тараканчик нашёл выход")
+        messagebox.showinfo("Победа", f"Таракан нашёл выход")
         return
-
     visited_cells.add((x, y))
-    directions_to_try = get_right(current_direction)
+    directions_to_try = get_right_hand_directions(current_direction)
     moved = False
     for new_direction in directions_to_try:
         if can_move(x, y, new_direction):
@@ -208,7 +223,7 @@ def run_right_hand_step():
             player, current_direction = path_history[-1]
         else:
             running_search = False
-            messagebox.showinfo("Поиск завершен", "Тараканчик зашел в тупик")
+            messagebox.showinfo("Поиск завершен", "Таракан зашел в тупик")
             return
     cx = player[0] * CELL_SIZE + CELL_SIZE // 2
     cy = player[1] * CELL_SIZE + CELL_SIZE // 2
@@ -233,7 +248,7 @@ def draw_correct_path():
                                 fill=PATH_COLOR, outline="", tags="path")
 
 def main():
-    global canvas
+    global canvas, player
     root = tk.Tk()
     root.title("Лабиринт")
     root.configure(bg="white")
@@ -242,18 +257,21 @@ def main():
     canvas.pack(pady=15)
     bottom = tk.Frame(root, bg="white")
     bottom.pack(side=tk.BOTTOM, fill=tk.X, pady=10)
-    start_btn = tk.Button(bottom, text="Запустить", command=start_right_hand,
+    start_btn = tk.Button(bottom, text="Запуск", command=start_right_hand,
                           font=("Arial", 12), bg=BUTTON_COLOR, fg="white",
                           relief="raised", padx=20, pady=8)
     start_btn.pack(side=tk.LEFT, padx=20)
     reset_btn = tk.Button(bottom, text="Заново", command=reset_game,
                           font=("Arial", 12), bg=BUTTON_COLOR, fg="white",
                           relief="raised", padx=20, pady=8)
-    reset_btn.pack(side=tk.RIGHT, padx=20)
+    reset_btn.pack(side=tk.LEFT, padx=20)
     generate_maze()
+    generate_exits()
+    player = get_random_start_position()
     draw_maze()
-    draw_exit()
+    draw_exits()
     draw_player()
     root.mainloop()
+
 if __name__ == "__main__":
     main()
